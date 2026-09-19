@@ -100,3 +100,41 @@ fn build_json_output_creates_pdf_and_docx() {
         .expect("document.xml should be readable");
     assert!(content.contains("Ana Souza"));
 }
+
+#[test]
+fn build_json_output_requires_overwrite_for_existing_files() {
+    let temp = tempdir().expect("temp dir");
+    let existing = temp.path().join("resume-test.pdf");
+    fs::write(&existing, b"existing").expect("should create existing file");
+
+    let output = Command::new(env!("CARGO_BIN_EXE_resumec"))
+        .args([
+            "build",
+            "examples/resume.yaml",
+            "--format",
+            "pdf",
+            "--output-dir",
+            temp.path().to_str().expect("utf-8 output dir"),
+            "--output-name",
+            "resume-test",
+            "--json-output",
+        ])
+        .current_dir(repo_root())
+        .output()
+        .expect("build command should run");
+
+    assert_eq!(output.status.code(), Some(3));
+    let payload: serde_json::Value =
+        serde_json::from_slice(&output.stdout).expect("stdout should be JSON");
+    assert_eq!(payload["status"], "error");
+    assert!(
+        payload["errors"]
+            .as_array()
+            .expect("errors array")
+            .iter()
+            .any(|error| error["field"]
+                .as_str()
+                .unwrap_or_default()
+                .ends_with("resume-test.pdf"))
+    );
+}

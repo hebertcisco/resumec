@@ -23,6 +23,11 @@ const CLASSIC_THEME: &str = include_str!("../assets/themes/classic/theme.yml");
 const MODERN_THEME: &str = include_str!("../assets/themes/modern/theme.yml");
 const MINIMAL_THEME: &str = include_str!("../assets/themes/minimal/theme.yml");
 const EXAMPLE_RESUME_YAML: &str = include_str!("../examples/resume.yaml");
+const BUILTIN_THEMES: &[(&str, &str)] = &[
+    ("classic", CLASSIC_THEME),
+    ("modern", MODERN_THEME),
+    ("minimal", MINIMAL_THEME),
+];
 
 #[derive(Debug, Error)]
 pub enum AppError {
@@ -1228,9 +1233,9 @@ struct ThemeDescriptor {
 fn list_themes(paths: &AppPaths) -> Result<Vec<ThemeDescriptor>, AppError> {
     paths.ensure_default_themes()?;
     let mut themes: Vec<ThemeDescriptor> = builtin_theme_sources()
-        .into_iter()
+        .iter()
         .map(|(name, _)| ThemeDescriptor {
-            name: name.to_string(),
+            name: (*name).to_string(),
             source: "built-in".to_string(),
         })
         .collect();
@@ -1559,7 +1564,12 @@ fn write_pdf(
             LineKind::Heading => heading_size,
             LineKind::Body => body_size,
         };
-        let consumed = pt_to_mm(size * if line.text.is_empty() { 0.8 } else { 1.35 });
+        let line_height_pt = if line.text.is_empty() {
+            theme.spacing.section_gap_pt.max(theme.spacing.item_gap_pt)
+        } else {
+            (size * 1.15) + theme.spacing.item_gap_pt
+        };
+        let consumed = pt_to_mm(line_height_pt);
         if y - consumed < margin_mm {
             ops.push(Op::EndTextSection);
             pages.push(PdfPage::new(Mm(width_mm), Mm(height_mm), ops));
@@ -1587,9 +1597,8 @@ fn write_pdf(
     ops.push(Op::EndTextSection);
     pages.push(PdfPage::new(Mm(width_mm), Mm(height_mm), ops));
 
-    let bytes = doc
-        .with_pages(pages)
-        .save(&PdfSaveOptions::default(), &mut Vec::new());
+    let document = doc.with_pages(pages);
+    let bytes = document.save(&PdfSaveOptions::default(), &mut Vec::new());
     fs::write(&destination, &bytes).map_err(|error| AppError::FileWrite {
         path: destination.display().to_string(),
         message: error.to_string(),
@@ -1716,24 +1725,21 @@ fn parse_toml_resume(content: &str) -> Result<Resume, String> {
     toml::from_str(content).map_err(|error| error.to_string())
 }
 
-fn builtin_theme_sources() -> Vec<(&'static str, &'static str)> {
-    vec![
-        ("classic", CLASSIC_THEME),
-        ("modern", MODERN_THEME),
-        ("minimal", MINIMAL_THEME),
-    ]
+fn builtin_theme_sources() -> &'static [(&'static str, &'static str)] {
+    BUILTIN_THEMES
 }
 
 fn builtin_theme_source(name: &str) -> Option<&'static str> {
-    builtin_theme_sources()
-        .into_iter()
+    BUILTIN_THEMES
+        .iter()
         .find_map(|(theme_name, source)| {
-            if theme_name == name {
+            if *theme_name == name {
                 Some(source)
             } else {
                 None
             }
         })
+        .copied()
 }
 
 fn default_theme_template(name: &str) -> String {

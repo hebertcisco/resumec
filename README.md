@@ -27,12 +27,12 @@ cargo build --release
 
 Schemas are published in:
 
-- `/home/runner/work/resumec/resumec/schemas/resume.schema.json`
-- `/home/runner/work/resumec/resumec/schemas/theme.schema.json`
+- `schemas/resume.schema.json`
+- `schemas/theme.schema.json`
 
 An example resume lives at:
 
-- `/home/runner/work/resumec/resumec/examples/resume.yaml`
+- `examples/resume.yaml`
 
 Core fields:
 
@@ -162,7 +162,7 @@ resumec theme install https://example.com/theme.yml
 
 ## GitHub Actions example
 
-Workflow included at `/home/runner/work/resumec/resumec/.github/workflows/resume.yml`.
+Workflow included at `.github/workflows/resume.yml`.
 
 Behavior:
 
