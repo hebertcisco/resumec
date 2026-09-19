@@ -3,10 +3,13 @@ use std::io::{self, BufRead, IsTerminal, Write};
 use std::path::{Path, PathBuf};
 
 use clap::{Args, CommandFactory, Parser, Subcommand, ValueEnum};
-use clap_complete::{generate, Shell};
+use clap_complete::{Shell, generate};
 use directories::ProjectDirs;
 use docx_rs::{Docx, Paragraph, Run};
-use printpdf::{BuiltinFont, Color, Mm, Op, PdfDocument, PdfFontHandle, PdfPage, PdfSaveOptions, Point, Pt, Rgb, TextItem};
+use printpdf::{
+    BuiltinFont, Color, Mm, Op, PdfDocument, PdfFontHandle, PdfPage, PdfSaveOptions, Point, Pt,
+    Rgb, TextItem,
+};
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 use url::Url;
@@ -62,12 +65,26 @@ impl AppError {
     pub fn issues(&self) -> Vec<ValidationIssue> {
         match self {
             Self::Validation { issues } => issues.clone(),
-            Self::Parse { path, message } => vec![ValidationIssue::new(path.clone(), message.clone())],
-            Self::ThemeNotFound { name } => vec![ValidationIssue::new("theme", format!("theme '{name}' was not found"))],
-            Self::FileWrite { path, message } => vec![ValidationIssue::new(path.clone(), message.clone())],
-            Self::FileRead { path, message } => vec![ValidationIssue::new(path.clone(), message.clone())],
-            Self::OverwriteRequired { path } => vec![ValidationIssue::new(path.clone(), "destination file already exists".to_string())],
-            Self::InvalidTheme { name, message } => vec![ValidationIssue::new(name.clone(), message.clone())],
+            Self::Parse { path, message } => {
+                vec![ValidationIssue::new(path.clone(), message.clone())]
+            }
+            Self::ThemeNotFound { name } => vec![ValidationIssue::new(
+                "theme",
+                format!("theme '{name}' was not found"),
+            )],
+            Self::FileWrite { path, message } => {
+                vec![ValidationIssue::new(path.clone(), message.clone())]
+            }
+            Self::FileRead { path, message } => {
+                vec![ValidationIssue::new(path.clone(), message.clone())]
+            }
+            Self::OverwriteRequired { path } => vec![ValidationIssue::new(
+                path.clone(),
+                "destination file already exists".to_string(),
+            )],
+            Self::InvalidTheme { name, message } => {
+                vec![ValidationIssue::new(name.clone(), message.clone())]
+            }
             Self::Network(message) | Self::Config(message) | Self::Mcp(message) => {
                 vec![ValidationIssue::new("general", message.clone())]
             }
@@ -222,7 +239,10 @@ impl Resume {
             }
         }
         if self.work.is_empty() {
-            issues.push(ValidationIssue::new("work", "at least one work entry is required"));
+            issues.push(ValidationIssue::new(
+                "work",
+                "at least one work entry is required",
+            ));
         }
         for (index, work) in self.work.iter().enumerate() {
             if work.company.trim().is_empty() {
@@ -369,7 +389,10 @@ impl Theme {
             ("palette.muted", &self.palette.muted),
         ] {
             if !is_hex_color(color) {
-                issues.push(ValidationIssue::new(label, "color must be in #RRGGBB format"));
+                issues.push(ValidationIssue::new(
+                    label,
+                    "color must be in #RRGGBB format",
+                ));
             }
         }
         if self.typography.base_size_pt < 8.0 {
@@ -452,7 +475,8 @@ impl AppPaths {
     }
 
     pub fn ensure(&self) -> Result<(), AppError> {
-        fs::create_dir_all(&self.themes_dir).map_err(|error| AppError::Config(error.to_string()))?;
+        fs::create_dir_all(&self.themes_dir)
+            .map_err(|error| AppError::Config(error.to_string()))?;
         Ok(())
     }
 
@@ -685,7 +709,10 @@ pub fn load_resume(path: &Path) -> Result<Resume, AppError> {
 
 pub fn parse_resume_content(path: &Path, content: &str) -> Result<Resume, AppError> {
     let path_display = path.display().to_string();
-    let extension = path.extension().and_then(|ext| ext.to_str()).unwrap_or_default();
+    let extension = path
+        .extension()
+        .and_then(|ext| ext.to_str())
+        .unwrap_or_default();
     let mut attempts = Vec::new();
 
     let parsers: Vec<fn(&str) -> Result<Resume, String>> = match extension {
@@ -727,7 +754,9 @@ pub fn load_theme_from_path(path: &Path) -> Result<Theme, AppError> {
         message: error.to_string(),
     })?;
     parse_theme_content(
-        path.file_stem().and_then(|stem| stem.to_str()).unwrap_or("theme"),
+        path.file_stem()
+            .and_then(|stem| stem.to_str())
+            .unwrap_or("theme"),
         &content,
     )
 }
@@ -749,10 +778,11 @@ pub fn load_preferences(paths: &AppPaths) -> Result<Preferences, AppError> {
     if !paths.preferences_path.exists() {
         return Ok(Preferences::default());
     }
-    let content = fs::read_to_string(&paths.preferences_path).map_err(|error| AppError::FileRead {
-        path: paths.preferences_path.display().to_string(),
-        message: error.to_string(),
-    })?;
+    let content =
+        fs::read_to_string(&paths.preferences_path).map_err(|error| AppError::FileRead {
+            path: paths.preferences_path.display().to_string(),
+            message: error.to_string(),
+        })?;
     serde_json::from_str(&content).map_err(|error| AppError::Config(error.to_string()))
 }
 
@@ -833,7 +863,9 @@ fn handle_build(args: BuildArgs) -> Result<(), AppError> {
         .output_dir
         .or_else(|| preferences.output_dir.clone().map(PathBuf::from))
         .unwrap_or(std::env::current_dir().map_err(|error| AppError::Config(error.to_string()))?);
-    let output_name = args.output_name.unwrap_or_else(|| derive_output_name_from_path(&args.input));
+    let output_name = args
+        .output_name
+        .unwrap_or_else(|| derive_output_name_from_path(&args.input));
     let options = BuildOptions {
         format: args
             .format
@@ -848,7 +880,10 @@ fn handle_build(args: BuildArgs) -> Result<(), AppError> {
     };
     let result = build_resume(&args.input, options)?;
     if args.json_output {
-        print_json(&MachineResult::success(result.clone(), result.warnings.clone()))?;
+        print_json(&MachineResult::success(
+            result.clone(),
+            result.warnings.clone(),
+        ))?;
     } else if !args.quiet {
         for output in &result.outputs {
             println!(
@@ -917,7 +952,8 @@ fn handle_theme(args: ThemeArgs) -> Result<(), AppError> {
 }
 
 fn handle_init(args: InitArgs) -> Result<(), AppError> {
-    let current_dir = std::env::current_dir().map_err(|error| AppError::Config(error.to_string()))?;
+    let current_dir =
+        std::env::current_dir().map_err(|error| AppError::Config(error.to_string()))?;
     let (file_name, content) = match args.format {
         InitFormat::Yaml => ("resume.yaml", EXAMPLE_RESUME_YAML.to_string()),
         InitFormat::Json => {
@@ -925,7 +961,8 @@ fn handle_init(args: InitArgs) -> Result<(), AppError> {
                 .map_err(|error| AppError::Config(error.to_string()))?;
             (
                 "resume.json",
-                serde_json::to_string_pretty(&resume).map_err(|error| AppError::Config(error.to_string()))?,
+                serde_json::to_string_pretty(&resume)
+                    .map_err(|error| AppError::Config(error.to_string()))?,
             )
         }
         InitFormat::Toml => {
@@ -933,7 +970,8 @@ fn handle_init(args: InitArgs) -> Result<(), AppError> {
                 .map_err(|error| AppError::Config(error.to_string()))?;
             (
                 "resume.toml",
-                toml::to_string_pretty(&resume).map_err(|error| AppError::Config(error.to_string()))?,
+                toml::to_string_pretty(&resume)
+                    .map_err(|error| AppError::Config(error.to_string()))?,
             )
         }
     };
@@ -967,12 +1005,20 @@ fn handle_config(args: ConfigArgs) -> Result<(), AppError> {
                         "pdf" => OutputFormat::Pdf,
                         "docx" => OutputFormat::Docx,
                         "both" => OutputFormat::Both,
-                        _ => return Err(AppError::Config("format must be pdf, docx, or both".to_string())),
+                        _ => {
+                            return Err(AppError::Config(
+                                "format must be pdf, docx, or both".to_string(),
+                            ));
+                        }
                     })
                 }
                 "locale" => preferences.locale = Some(value),
                 "output_dir" => preferences.output_dir = Some(value),
-                _ => return Err(AppError::Config("supported keys: theme, format, locale, output_dir".to_string())),
+                _ => {
+                    return Err(AppError::Config(
+                        "supported keys: theme, format, locale, output_dir".to_string(),
+                    ));
+                }
             }
             save_preferences(&paths, &preferences)?;
             print_json(&preferences)?;
@@ -998,9 +1044,12 @@ fn serve_mcp() -> Result<(), AppError> {
         let request: McpRequest = serde_json::from_str(&line)
             .map_err(|error| AppError::Mcp(format!("invalid JSON request: {error}")))?;
         let response = process_mcp_request(request);
-        let payload = serde_json::to_string(&response).map_err(|error| AppError::Mcp(error.to_string()))?;
+        let payload =
+            serde_json::to_string(&response).map_err(|error| AppError::Mcp(error.to_string()))?;
         writeln!(stdout, "{payload}").map_err(|error| AppError::Mcp(error.to_string()))?;
-        stdout.flush().map_err(|error| AppError::Mcp(error.to_string()))?;
+        stdout
+            .flush()
+            .map_err(|error| AppError::Mcp(error.to_string()))?;
     }
     Ok(())
 }
@@ -1077,7 +1126,10 @@ fn call_mcp_tool(params: serde_json::Value) -> Result<serde_json::Value, AppErro
         .get("name")
         .and_then(|value| value.as_str())
         .ok_or_else(|| AppError::Mcp("tools/call requires a tool name".to_string()))?;
-    let arguments = params.get("arguments").cloned().unwrap_or_else(|| serde_json::json!({}));
+    let arguments = params
+        .get("arguments")
+        .cloned()
+        .unwrap_or_else(|| serde_json::json!({}));
     match name {
         "validate_resume" => {
             let input = arguments
@@ -1099,11 +1151,19 @@ fn call_mcp_tool(params: serde_json::Value) -> Result<serde_json::Value, AppErro
                 .get("input")
                 .and_then(|value| value.as_str())
                 .ok_or_else(|| AppError::Mcp("build_resume requires input".to_string()))?;
-            let format = match arguments.get("format").and_then(|value| value.as_str()).unwrap_or("pdf") {
+            let format = match arguments
+                .get("format")
+                .and_then(|value| value.as_str())
+                .unwrap_or("pdf")
+            {
                 "pdf" => OutputFormat::Pdf,
                 "docx" => OutputFormat::Docx,
                 "both" => OutputFormat::Both,
-                _ => return Err(AppError::Mcp("format must be pdf, docx, or both".to_string())),
+                _ => {
+                    return Err(AppError::Mcp(
+                        "format must be pdf, docx, or both".to_string(),
+                    ));
+                }
             };
             let theme_name = arguments
                 .get("theme")
@@ -1114,7 +1174,9 @@ fn call_mcp_tool(params: serde_json::Value) -> Result<serde_json::Value, AppErro
                 .get("output_dir")
                 .and_then(|value| value.as_str())
                 .map(PathBuf::from)
-                .unwrap_or(std::env::current_dir().map_err(|error| AppError::Config(error.to_string()))?);
+                .unwrap_or(
+                    std::env::current_dir().map_err(|error| AppError::Config(error.to_string()))?,
+                );
             let output_name = arguments
                 .get("output_name")
                 .and_then(|value| value.as_str())
@@ -1136,8 +1198,11 @@ fn call_mcp_tool(params: serde_json::Value) -> Result<serde_json::Value, AppErro
                     json_output: true,
                 },
             )?;
-            Ok(serde_json::to_value(MachineResult::success(result.clone(), result.warnings.clone()))
-                .map_err(|error| AppError::Mcp(error.to_string()))?)
+            Ok(serde_json::to_value(MachineResult::success(
+                result.clone(),
+                result.warnings.clone(),
+            ))
+            .map_err(|error| AppError::Mcp(error.to_string()))?)
         }
         "list_themes" => {
             let paths = AppPaths::detect()?;
@@ -1147,7 +1212,8 @@ fn call_mcp_tool(params: serde_json::Value) -> Result<serde_json::Value, AppErro
         "get_preferences" => {
             let paths = AppPaths::detect()?;
             let preferences = load_preferences(&paths)?;
-            Ok(serde_json::to_value(preferences).map_err(|error| AppError::Mcp(error.to_string()))?)
+            Ok(serde_json::to_value(preferences)
+                .map_err(|error| AppError::Mcp(error.to_string()))?)
         }
         _ => Err(AppError::Mcp(format!("unsupported tool: {name}"))),
     }
@@ -1297,7 +1363,11 @@ fn render_lines(resume: &Resume, theme: &Theme) -> Vec<DocumentLine> {
                                 entry.position,
                                 entry.company,
                                 join_non_empty([
-                                    format_date_range(entry.start_date.as_deref(), entry.end_date.as_deref()).as_deref(),
+                                    format_date_range(
+                                        entry.start_date.as_deref(),
+                                        entry.end_date.as_deref()
+                                    )
+                                    .as_deref(),
                                     entry.location.as_deref(),
                                     None,
                                 ])
@@ -1330,11 +1400,19 @@ fn render_lines(resume: &Resume, theme: &Theme) -> Vec<DocumentLine> {
                                 entry.study_type.clone().unwrap_or_default(),
                                 if entry.study_type.is_some() { " " } else { "" },
                                 entry.area,
-                                if entry.institution.is_empty() { "".to_string() } else { format!(" | {}", entry.institution) }
+                                if entry.institution.is_empty() {
+                                    "".to_string()
+                                } else {
+                                    format!(" | {}", entry.institution)
+                                }
                             ),
                         });
                         let details = join_non_empty([
-                            format_date_range(entry.start_date.as_deref(), entry.end_date.as_deref()).as_deref(),
+                            format_date_range(
+                                entry.start_date.as_deref(),
+                                entry.end_date.as_deref(),
+                            )
+                            .as_deref(),
                             entry.location.as_deref(),
                             entry.score.as_deref(),
                         ]);
@@ -1416,7 +1494,11 @@ fn render_lines(resume: &Resume, theme: &Theme) -> Vec<DocumentLine> {
                     for entry in &resume.languages {
                         lines.push(DocumentLine {
                             kind: LineKind::Body,
-                            text: join_non_empty([Some(entry.name.as_str()), entry.fluency.as_deref(), None]),
+                            text: join_non_empty([
+                                Some(entry.name.as_str()),
+                                entry.fluency.as_deref(),
+                                None,
+                            ]),
                         });
                     }
                     lines.push(blank_line());
@@ -1458,7 +1540,9 @@ fn write_pdf(
     lines: &[DocumentLine],
     options: &BuildOptions,
 ) -> Result<GeneratedOutput, AppError> {
-    let destination = options.output_dir.join(format!("{}.pdf", options.output_name));
+    let destination = options
+        .output_dir
+        .join(format!("{}.pdf", options.output_name));
     ensure_can_write(&destination, options)?;
     let mut doc = PdfDocument::new(&resume.basics.name);
     let mut pages = Vec::new();
@@ -1523,7 +1607,9 @@ fn write_docx(
     lines: &[DocumentLine],
     options: &BuildOptions,
 ) -> Result<GeneratedOutput, AppError> {
-    let destination = options.output_dir.join(format!("{}.docx", options.output_name));
+    let destination = options
+        .output_dir
+        .join(format!("{}.docx", options.output_name));
     ensure_can_write(&destination, options)?;
     let file = fs::File::create(&destination).map_err(|error| AppError::FileWrite {
         path: destination.display().to_string(),
@@ -1534,18 +1620,25 @@ fn write_docx(
         let mut run = Run::new().add_text(line.text.clone());
         match line.kind {
             LineKind::Heading => {
-                run = run.bold().size((theme.typography.heading_size_pt * 2.0) as usize).color(strip_hash(&theme.palette.primary));
+                run = run
+                    .bold()
+                    .size((theme.typography.heading_size_pt * 2.0) as usize)
+                    .color(strip_hash(&theme.palette.primary));
             }
             LineKind::Body => {
-                run = run.size((theme.typography.base_size_pt * 2.0) as usize).color(strip_hash(&theme.palette.text));
+                run = run
+                    .size((theme.typography.base_size_pt * 2.0) as usize)
+                    .color(strip_hash(&theme.palette.text));
             }
         }
         docx = docx.add_paragraph(Paragraph::new().add_run(run));
     }
-    docx.build().pack(file).map_err(|error| AppError::FileWrite {
-        path: destination.display().to_string(),
-        message: error.to_string(),
-    })?;
+    docx.build()
+        .pack(file)
+        .map_err(|error| AppError::FileWrite {
+            path: destination.display().to_string(),
+            message: error.to_string(),
+        })?;
     let bytes = fs::metadata(&destination)
         .map_err(|error| AppError::FileRead {
             path: destination.display().to_string(),
@@ -1561,7 +1654,11 @@ fn write_docx(
 
 fn ensure_can_write(path: &Path, options: &BuildOptions) -> Result<(), AppError> {
     if path.exists() && !options.overwrite {
-        if options.json_output || options.non_interactive || !io::stdin().is_terminal() || !io::stdout().is_terminal() {
+        if options.json_output
+            || options.non_interactive
+            || !io::stdin().is_terminal()
+            || !io::stdout().is_terminal()
+        {
             return Err(AppError::OverwriteRequired {
                 path: path.display().to_string(),
             });
@@ -1572,10 +1669,12 @@ fn ensure_can_write(path: &Path, options: &BuildOptions) -> Result<(), AppError>
             message: error.to_string(),
         })?;
         let mut answer = String::new();
-        io::stdin().read_line(&mut answer).map_err(|error| AppError::FileRead {
-            path: path.display().to_string(),
-            message: error.to_string(),
-        })?;
+        io::stdin()
+            .read_line(&mut answer)
+            .map_err(|error| AppError::FileRead {
+                path: path.display().to_string(),
+                message: error.to_string(),
+            })?;
         if !matches!(answer.trim().to_ascii_lowercase().as_str(), "y" | "yes") {
             return Err(AppError::OverwriteRequired {
                 path: path.display().to_string(),
@@ -1628,7 +1727,13 @@ fn builtin_theme_sources() -> Vec<(&'static str, &'static str)> {
 fn builtin_theme_source(name: &str) -> Option<&'static str> {
     builtin_theme_sources()
         .into_iter()
-        .find_map(|(theme_name, source)| if theme_name == name { Some(source) } else { None })
+        .find_map(|(theme_name, source)| {
+            if theme_name == name {
+                Some(source)
+            } else {
+                None
+            }
+        })
 }
 
 fn default_theme_template(name: &str) -> String {
@@ -1699,7 +1804,10 @@ fn hex_to_rgb(color: &str) -> (f32, f32, f32) {
 
 fn is_hex_color(color: &str) -> bool {
     let stripped = strip_hash(color);
-    stripped.len() == 6 && stripped.chars().all(|character| character.is_ascii_hexdigit())
+    stripped.len() == 6
+        && stripped
+            .chars()
+            .all(|character| character.is_ascii_hexdigit())
 }
 
 fn pt_to_mm(pt: f32) -> f32 {
@@ -1729,7 +1837,8 @@ fn default_page_margin_pt() -> f32 {
 }
 
 pub fn print_json<T: Serialize>(value: &T) -> Result<(), AppError> {
-    serde_json::to_writer_pretty(io::stdout(), value).map_err(|error| AppError::Config(error.to_string()))?;
+    serde_json::to_writer_pretty(io::stdout(), value)
+        .map_err(|error| AppError::Config(error.to_string()))?;
     println!();
     Ok(())
 }
@@ -1752,7 +1861,8 @@ mod tests {
 
     #[test]
     fn validates_resume_schema_version() {
-        let mut resume: Resume = serde_yaml::from_str(EXAMPLE_RESUME_YAML).expect("fixture should parse");
+        let mut resume: Resume =
+            serde_yaml::from_str(EXAMPLE_RESUME_YAML).expect("fixture should parse");
         resume.schema_version = 2;
         let issues = resume.validate();
         assert!(issues.iter().any(|issue| issue.field == "schema_version"));
@@ -1785,8 +1895,16 @@ mod tests {
             .expect("build should succeed");
             assert_eq!(result.outputs.len(), 2);
             for output in result.outputs {
-                assert!(output.path.exists(), "{} should exist", output.path.display());
-                assert!(output.bytes > 0, "{} should not be empty", output.path.display());
+                assert!(
+                    output.path.exists(),
+                    "{} should exist",
+                    output.path.display()
+                );
+                assert!(
+                    output.bytes > 0,
+                    "{} should not be empty",
+                    output.path.display()
+                );
             }
         }
     }

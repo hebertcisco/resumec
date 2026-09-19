@@ -1,5 +1,5 @@
 use clap::Parser;
-use resumec::{print_json, run_cli, Cli, MachineResult};
+use resumec::{Cli, MachineResult, print_json, run_cli};
 
 fn main() {
     let json_output = std::env::args().any(|arg| arg == "--json-output");

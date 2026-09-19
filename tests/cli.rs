@@ -21,8 +21,14 @@ fn parses_json_yaml_and_toml_via_validate() {
             .current_dir(repo_root())
             .output()
             .expect("validate command should run");
-        assert!(output.status.success(), "{} failed: {}", fixture, String::from_utf8_lossy(&output.stderr));
-        let payload: serde_json::Value = serde_json::from_slice(&output.stdout).expect("stdout should be JSON");
+        assert!(
+            output.status.success(),
+            "{} failed: {}",
+            fixture,
+            String::from_utf8_lossy(&output.stderr)
+        );
+        let payload: serde_json::Value =
+            serde_json::from_slice(&output.stdout).expect("stdout should be JSON");
         assert_eq!(payload["status"], "success");
     }
 }
@@ -30,12 +36,17 @@ fn parses_json_yaml_and_toml_via_validate() {
 #[test]
 fn returns_structured_errors_for_invalid_resume() {
     let output = Command::new(env!("CARGO_BIN_EXE_resumec"))
-        .args(["validate", "tests/fixtures/invalid_resume.yaml", "--json-output"])
+        .args([
+            "validate",
+            "tests/fixtures/invalid_resume.yaml",
+            "--json-output",
+        ])
         .current_dir(repo_root())
         .output()
         .expect("validate command should run");
     assert_eq!(output.status.code(), Some(1));
-    let payload: serde_json::Value = serde_json::from_slice(&output.stdout).expect("stdout should be JSON");
+    let payload: serde_json::Value =
+        serde_json::from_slice(&output.stdout).expect("stdout should be JSON");
     assert_eq!(payload["status"], "error");
     assert!(payload["errors"].as_array().expect("errors array").len() >= 2);
 }
@@ -61,10 +72,17 @@ fn build_json_output_creates_pdf_and_docx() {
         .current_dir(repo_root())
         .output()
         .expect("build command should run");
-    assert!(output.status.success(), "build failed: {}", String::from_utf8_lossy(&output.stderr));
-    let payload: serde_json::Value = serde_json::from_slice(&output.stdout).expect("stdout should be JSON");
+    assert!(
+        output.status.success(),
+        "build failed: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let payload: serde_json::Value =
+        serde_json::from_slice(&output.stdout).expect("stdout should be JSON");
     assert_eq!(payload["status"], "success");
-    let outputs = payload["data"]["outputs"].as_array().expect("outputs array");
+    let outputs = payload["data"]["outputs"]
+        .as_array()
+        .expect("outputs array");
     assert_eq!(outputs.len(), 2);
     let docx_path = temp.path().join("resume-test.docx");
     let pdf_path = temp.path().join("resume-test.pdf");
@@ -72,9 +90,13 @@ fn build_json_output_creates_pdf_and_docx() {
     assert!(docx_path.exists());
     let file = fs::File::open(docx_path).expect("docx should exist");
     let mut archive = ZipArchive::new(file).expect("docx should be a zip archive");
-    let mut document_xml = archive.by_name("word/document.xml").expect("document.xml should exist");
+    let mut document_xml = archive
+        .by_name("word/document.xml")
+        .expect("document.xml should exist");
     let mut content = String::new();
     use std::io::Read;
-    document_xml.read_to_string(&mut content).expect("document.xml should be readable");
+    document_xml
+        .read_to_string(&mut content)
+        .expect("document.xml should be readable");
     assert!(content.contains("Ana Souza"));
 }
