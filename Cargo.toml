@@ -2,6 +2,10 @@
 name = "resumec"
 version = "0.1.0"
 edition = "2024"
+description = "ATS-friendly resume compiler for PDF and DOCX outputs"
+license = "MIT OR Apache-2.0"
+readme = "README.md"
+repository = "https://github.com/hebertcisco/resumec"
 
 [dependencies]
 clap = { version = "4.6.7", features = ["derive"] }

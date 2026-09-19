@@ -1,0 +1,122 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://hebertcisco.github.io/resumec/schemas/resume.schema.json",
+  "title": "resumec resume schema",
+  "type": "object",
+  "required": ["schema_version", "basics", "work", "education", "skills"],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "theme": { "type": "string" },
+    "locale": { "type": "string" },
+    "target_role": { "type": "string" },
+    "basics": {
+      "type": "object",
+      "required": ["name", "email"],
+      "properties": {
+        "name": { "type": "string", "minLength": 1 },
+        "headline": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "phone": { "type": "string" },
+        "location": { "type": "string" },
+        "summary": { "type": "string" },
+        "links": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["label", "url"],
+            "properties": {
+              "label": { "type": "string" },
+              "url": { "type": "string", "format": "uri" }
+            }
+          }
+        }
+      }
+    },
+    "work": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["company", "position", "highlights"],
+        "properties": {
+          "company": { "type": "string", "minLength": 1 },
+          "position": { "type": "string", "minLength": 1 },
+          "start_date": { "type": "string" },
+          "end_date": { "type": "string" },
+          "location": { "type": "string" },
+          "summary": { "type": "string" },
+          "highlights": { "type": "array", "items": { "type": "string" }, "minItems": 1 }
+        }
+      }
+    },
+    "education": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["institution", "area"],
+        "properties": {
+          "institution": { "type": "string", "minLength": 1 },
+          "area": { "type": "string", "minLength": 1 },
+          "study_type": { "type": "string" },
+          "start_date": { "type": "string" },
+          "end_date": { "type": "string" },
+          "location": { "type": "string" },
+          "score": { "type": "string" }
+        }
+      }
+    },
+    "skills": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["category", "items"],
+        "properties": {
+          "category": { "type": "string", "minLength": 1 },
+          "items": { "type": "array", "items": { "type": "string" }, "minItems": 1 }
+        }
+      }
+    },
+    "certifications": { "type": "array", "items": { "$ref": "#/$defs/datedItem" } },
+    "projects": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name"],
+        "properties": {
+          "name": { "type": "string", "minLength": 1 },
+          "summary": { "type": "string" },
+          "url": { "type": "string", "format": "uri" },
+          "highlights": { "type": "array", "items": { "type": "string" } }
+        }
+      }
+    },
+    "languages": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name"],
+        "properties": {
+          "name": { "type": "string", "minLength": 1 },
+          "fluency": { "type": "string" }
+        }
+      }
+    },
+    "awards": { "type": "array", "items": { "$ref": "#/$defs/datedItem" } }
+  },
+  "$defs": {
+    "datedItem": {
+      "type": "object",
+      "required": ["name"],
+      "properties": {
+        "name": { "type": "string" },
+        "title": { "type": "string" },
+        "issuer": { "type": "string" },
+        "date": { "type": "string" },
+        "summary": { "type": "string" }
+      },
+      "anyOf": [
+        { "required": ["name"] },
+        { "required": ["title"] }
+      ]
+    }
+  }
+}

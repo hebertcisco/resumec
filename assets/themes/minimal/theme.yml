@@ -1,0 +1,38 @@
+schema_version: 1
+name: minimal
+description: Compact layout with minimal ornamentation for concise resumes.
+ats_safe: true
+palette:
+  primary: "#111111"
+  secondary: "#444444"
+  accent: "#666666"
+  text: "#111111"
+  muted: "#777777"
+typography:
+  font_family: Helvetica
+  base_size_pt: 10.0
+  heading_size_pt: 13.0
+spacing:
+  section_gap_pt: 9.0
+  item_gap_pt: 4.5
+layout:
+  columns: 1
+sections:
+  - id: basics
+    visible: true
+  - id: summary
+    visible: true
+  - id: work
+    visible: true
+  - id: education
+    visible: true
+  - id: skills
+    visible: true
+  - id: projects
+    visible: true
+  - id: certifications
+    visible: true
+  - id: languages
+    visible: true
+  - id: awards
+    visible: true
