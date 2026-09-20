@@ -1,0 +1,38 @@
+schema_version: 1
+name: modern
+description: Modern accent colors with ATS-safe ordering and spacing.
+ats_safe: true
+palette:
+  primary: "#0F172A"
+  secondary: "#1D4ED8"
+  accent: "#2563EB"
+  text: "#111827"
+  muted: "#6B7280"
+typography:
+  font_family: Helvetica
+  base_size_pt: 10.5
+  heading_size_pt: 14.5
+spacing:
+  section_gap_pt: 11.0
+  item_gap_pt: 5.5
+layout:
+  columns: 1
+sections:
+  - id: basics
+    visible: true
+  - id: summary
+    visible: true
+  - id: work
+    visible: true
+  - id: skills
+    visible: true
+  - id: projects
+    visible: true
+  - id: education
+    visible: true
+  - id: certifications
+    visible: true
+  - id: languages
+    visible: true
+  - id: awards
+    visible: true
