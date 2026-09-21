@@ -30,14 +30,17 @@ pub fn render_lines(resume: &Resume, theme: &Theme) -> Vec<DocumentLine> {
                         text: headline.clone(),
                     });
                 }
-                lines.push(DocumentLine {
-                    kind: LineKind::Body,
-                    text: join_non_empty([
-                        Some(resume.basics.email.as_str()),
-                        resume.basics.phone.as_deref(),
-                        resume.basics.location.as_deref(),
-                    ]),
-                });
+                let contact_details = join_non_empty([
+                    resume.basics.email.as_deref(),
+                    resume.basics.phone.as_deref(),
+                    resume.basics.location.as_deref(),
+                ]);
+                if !contact_details.is_empty() {
+                    lines.push(DocumentLine {
+                        kind: LineKind::Body,
+                        text: contact_details,
+                    });
+                }
                 if !resume.basics.links.is_empty() {
                     lines.push(DocumentLine {
                         kind: LineKind::Body,

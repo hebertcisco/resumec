@@ -2,7 +2,7 @@ use crate::build::{BuildOptions, build_resume_with_paths};
 use crate::constants::EXAMPLE_RESUME_YAML;
 use crate::model::{OutputFormat, Resume};
 use crate::paths::AppPaths;
-use crate::render::{localized_label, wrap_text};
+use crate::render::{localized_label, render_lines, wrap_text};
 use crate::resume_io::load_resume;
 use crate::theme_io::load_theme_by_name;
 use crate::theme_io::parse_theme_content;
@@ -30,6 +30,35 @@ fn validates_resume_schema_version() {
     resume.schema_version = 2;
     let issues = resume.validate();
     assert!(issues.iter().any(|issue| issue.field == "schema_version"));
+}
+
+#[test]
+fn accepts_basics_without_contact_fields() {
+    let content = EXAMPLE_RESUME_YAML
+        .lines()
+        .filter(|line| {
+            !line.starts_with("  email:")
+                && !line.starts_with("  phone:")
+                && !line.starts_with("  location:")
+        })
+        .collect::<Vec<_>>()
+        .join("\n");
+    let resume: Resume = serde_yaml::from_str(&content).expect("contact fields should be optional");
+
+    assert_eq!(resume.basics.email, None);
+    assert_eq!(resume.basics.phone, None);
+    assert_eq!(resume.basics.location, None);
+    assert!(resume.validate().is_empty());
+
+    let temp = tempdir().expect("temp dir");
+    let paths = AppPaths::from_config_dir(temp.path());
+    let theme = load_theme_by_name("classic", &paths).expect("classic theme should exist");
+    let lines = render_lines(&resume, &theme);
+    assert!(
+        !lines
+            .windows(2)
+            .any(|pair| pair.iter().all(|line| line.text.is_empty()))
+    );
 }
 
 #[test]

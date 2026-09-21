@@ -31,7 +31,7 @@ pub struct Resume {
 pub struct Basics {
     pub name: String,
     pub headline: Option<String>,
-    pub email: String,
+    pub email: Option<String>,
     pub phone: Option<String>,
     pub location: Option<String>,
     pub summary: Option<String>,
@@ -118,8 +118,10 @@ impl Resume {
         if self.basics.name.trim().is_empty() {
             issues.push(ValidationIssue::new("basics.name", "name is required"));
         }
-        if !self.basics.email.contains('@') {
-            issues.push(ValidationIssue::new("basics.email", "email must contain @"));
+        if let Some(email) = &self.basics.email {
+            if !email.contains('@') {
+                issues.push(ValidationIssue::new("basics.email", "email must contain @"));
+            }
         }
         for (index, link) in self.basics.links.iter().enumerate() {
             if link.label.trim().is_empty() {
