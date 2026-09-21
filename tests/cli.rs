@@ -41,7 +41,6 @@ fn returns_structured_errors_for_invalid_resume() {
             "tests/fixtures/invalid_resume.yaml",
             "--json-output",
         ])
-        .env("RESUMEC_CONFIG_DIR", temp.path().join("config"))
         .current_dir(repo_root())
         .output()
         .expect("validate command should run");
@@ -155,6 +154,7 @@ fn build_rejects_output_names_with_path_components() {
             "../outside",
             "--json-output",
         ])
+        .env("RESUMEC_CONFIG_DIR", temp.path().join("config"))
         .current_dir(repo_root())
         .output()
         .expect("build command should run");
