@@ -9,6 +9,7 @@ use crate::preferences_io::load_preferences;
 use crate::render::render_lines;
 use crate::resume_io::load_resume;
 use crate::theme_io::load_theme_by_name;
+use crate::util::is_safe_file_stem;
 
 #[derive(Debug, Clone)]
 pub struct BuildOptions {
@@ -31,6 +32,11 @@ pub fn validate_resume(resume: &Resume) -> Result<(), AppError> {
 }
 
 pub fn build_resume(input_path: &Path, mut options: BuildOptions) -> Result<BuildResult, AppError> {
+    if !is_safe_file_stem(&options.output_name) {
+        return Err(AppError::Config(
+            "output name must contain only ASCII letters, numbers, '-' or '_'".to_string(),
+        ));
+    }
     let paths = AppPaths::detect()?;
     paths.ensure_default_themes()?;
     let resume = load_resume(input_path)?;
