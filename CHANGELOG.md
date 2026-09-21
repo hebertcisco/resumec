@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Made the basic contact fields `email`, `phone`, and `location` optional.
+
 ### Added
 
 - Continuous integration workflow covering format, Clippy, tests, and example
