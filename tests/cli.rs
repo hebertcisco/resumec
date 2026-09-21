@@ -41,6 +41,7 @@ fn returns_structured_errors_for_invalid_resume() {
             "tests/fixtures/invalid_resume.yaml",
             "--json-output",
         ])
+        .env("RESUMEC_CONFIG_DIR", temp.path().join("config"))
         .current_dir(repo_root())
         .output()
         .expect("validate command should run");
@@ -69,6 +70,7 @@ fn build_json_output_creates_pdf_and_docx() {
             "--json-output",
             "--overwrite",
         ])
+        .env("RESUMEC_CONFIG_DIR", temp.path().join("config"))
         .current_dir(repo_root())
         .output()
         .expect("build command should run");
@@ -119,6 +121,7 @@ fn build_json_output_requires_overwrite_for_existing_files() {
             "resume-test",
             "--json-output",
         ])
+        .env("RESUMEC_CONFIG_DIR", temp.path().join("config"))
         .current_dir(repo_root())
         .output()
         .expect("build command should run");
