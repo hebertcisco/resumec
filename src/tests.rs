@@ -1,4 +1,4 @@
-use crate::build::{BuildOptions, build_resume};
+use crate::build::{BuildOptions, build_resume_with_paths};
 use crate::constants::EXAMPLE_RESUME_YAML;
 use crate::model::{OutputFormat, Resume};
 use crate::paths::AppPaths;
@@ -34,7 +34,8 @@ fn validates_resume_schema_version() {
 
 #[test]
 fn loads_builtin_theme() {
-    let paths = AppPaths::detect().expect("paths available");
+    let temp = tempdir().expect("temp dir");
+    let paths = AppPaths::from_config_dir(temp.path());
     let theme = load_theme_by_name("classic", &paths).expect("classic theme should exist");
     assert_eq!(theme.name, "classic");
 }
@@ -44,7 +45,8 @@ fn builds_both_formats_for_all_builtin_themes() {
     let input = repo_root().join("examples/resume.yaml");
     for theme_name in ["classic", "modern", "minimal"] {
         let temp = tempdir().expect("temp dir");
-        let result = build_resume(
+        let paths = AppPaths::from_config_dir(temp.path().join("config"));
+        let result = build_resume_with_paths(
             &input,
             BuildOptions {
                 format: OutputFormat::Both,
@@ -55,6 +57,7 @@ fn builds_both_formats_for_all_builtin_themes() {
                 non_interactive: true,
                 json_output: true,
             },
+            &paths,
         )
         .expect("build should succeed");
         assert_eq!(result.outputs.len(), 2);
@@ -77,7 +80,8 @@ fn builds_both_formats_for_all_builtin_themes() {
 fn pdf_keeps_multiline_resume_content() {
     let input = repo_root().join("examples/resume.yaml");
     let temp = tempdir().expect("temp dir");
-    let result = build_resume(
+    let paths = AppPaths::from_config_dir(temp.path().join("config"));
+    let result = build_resume_with_paths(
         &input,
         BuildOptions {
             format: OutputFormat::Pdf,
@@ -88,6 +92,7 @@ fn pdf_keeps_multiline_resume_content() {
             non_interactive: true,
             json_output: true,
         },
+        &paths,
     )
     .expect("build should succeed");
     let bytes = fs::read(&result.outputs[0].path).expect("pdf should be readable");
