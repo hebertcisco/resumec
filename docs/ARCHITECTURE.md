@@ -49,6 +49,7 @@ responsibilities so CLI, MCP, and future API surfaces can share the same core.
 3. **Rendering is format-agnostic** — produce `DocumentLine`s, then write PDF/DOCX.
 4. **Stable automation contract** — `--json-output` and exit codes are part of the public surface; change them carefully and document in `CHANGELOG.md`.
 5. **Themes are data** — built-ins ship under `assets/themes/`; user themes live in the platform config directory.
+6. **Generated paths stay contained** — output and theme names are portable file stems, never arbitrary paths.
 
 ## Testing strategy
 
