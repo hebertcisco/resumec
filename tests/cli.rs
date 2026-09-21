@@ -138,3 +138,27 @@ fn build_json_output_requires_overwrite_for_existing_files() {
                 .ends_with("resume-test.pdf"))
     );
 }
+
+#[test]
+fn build_rejects_output_names_with_path_components() {
+    let temp = tempdir().expect("temp dir");
+    let output = Command::new(env!("CARGO_BIN_EXE_resumec"))
+        .args([
+            "build",
+            "examples/resume.yaml",
+            "--output-dir",
+            temp.path().to_str().expect("utf-8 output dir"),
+            "--output-name",
+            "../outside",
+            "--json-output",
+        ])
+        .current_dir(repo_root())
+        .output()
+        .expect("build command should run");
+
+    assert_eq!(output.status.code(), Some(7));
+    let payload: serde_json::Value =
+        serde_json::from_slice(&output.stdout).expect("stdout should be JSON");
+    assert_eq!(payload["status"], "error");
+    assert!(!temp.path().join("../outside.pdf").exists());
+}
