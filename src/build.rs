@@ -31,18 +31,26 @@ pub fn validate_resume(resume: &Resume) -> Result<(), AppError> {
     }
 }
 
-pub fn build_resume(input_path: &Path, mut options: BuildOptions) -> Result<BuildResult, AppError> {
+pub fn build_resume(input_path: &Path, options: BuildOptions) -> Result<BuildResult, AppError> {
+    let paths = AppPaths::detect()?;
+    build_resume_with_paths(input_path, options, &paths)
+}
+
+pub(crate) fn build_resume_with_paths(
+    input_path: &Path,
+    mut options: BuildOptions,
+    paths: &AppPaths,
+) -> Result<BuildResult, AppError> {
     if !is_safe_file_stem(&options.output_name) {
         return Err(AppError::Config(
             "output name must contain only ASCII letters, numbers, '-' or '_'".to_string(),
         ));
     }
-    let paths = AppPaths::detect()?;
     paths.ensure_default_themes()?;
     let resume = load_resume(input_path)?;
     validate_resume(&resume)?;
 
-    let preferences = load_preferences(&paths)?;
+    let preferences = load_preferences(paths)?;
     if options.theme_name.is_empty() {
         options.theme_name = resume
             .theme
@@ -50,7 +58,7 @@ pub fn build_resume(input_path: &Path, mut options: BuildOptions) -> Result<Buil
             .or(preferences.default_theme)
             .unwrap_or_else(|| "classic".to_string());
     }
-    let theme = load_theme_by_name(&options.theme_name, &paths)?;
+    let theme = load_theme_by_name(&options.theme_name, paths)?;
     let lines = render_lines(&resume, &theme);
     fs::create_dir_all(&options.output_dir).map_err(|error| AppError::FileWrite {
         path: options.output_dir.display().to_string(),
