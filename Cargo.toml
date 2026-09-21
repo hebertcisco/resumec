@@ -2,10 +2,15 @@
 name = "resumec"
 version = "0.1.0"
 edition = "2024"
+rust-version = "1.85"
 description = "ATS-friendly resume compiler for PDF and DOCX outputs"
 license = "MIT OR Apache-2.0"
 readme = "README.md"
 repository = "https://github.com/hebertcisco/resumec"
+homepage = "https://github.com/hebertcisco/resumec"
+documentation = "https://docs.rs/resumec"
+keywords = ["resume", "cv", "cli", "pdf", "docx"]
+categories = ["command-line-utilities", "text-processing"]
 
 [dependencies]
 clap = { version = "4.6.7", features = ["derive"] }
