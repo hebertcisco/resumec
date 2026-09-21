@@ -134,6 +134,9 @@ Contents:
 - `preferences.json`
 - `themes/`
 
+Set `RESUMEC_CONFIG_DIR` to override this location in isolated environments or
+automated tests.
+
 Example:
 
 ```bash
