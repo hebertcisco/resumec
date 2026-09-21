@@ -7,8 +7,8 @@ use clap_complete::{Shell, generate};
 use directories::ProjectDirs;
 use docx_rs::{Docx, Paragraph, Run};
 use printpdf::{
-    BuiltinFont, Color, Mm, Op, PdfDocument, PdfFontHandle, PdfPage, PdfSaveOptions, Point, Pt,
-    Rgb, TextItem,
+    BuiltinFont, Color, Mm, Op, PdfDocument, PdfFontHandle, PdfPage, PdfSaveOptions, Pt, Rgb,
+    TextItem, TextMatrix,
 };
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
@@ -1311,6 +1311,7 @@ struct DocumentLine {
 }
 
 fn render_lines(resume: &Resume, theme: &Theme) -> Vec<DocumentLine> {
+    let locale = resume.locale.as_deref();
     let mut lines = Vec::new();
     for section in theme.visible_sections() {
         match section {
@@ -1349,7 +1350,7 @@ fn render_lines(resume: &Resume, theme: &Theme) -> Vec<DocumentLine> {
             }
             SectionId::Summary => {
                 if let Some(summary) = &resume.basics.summary {
-                    lines.push(section_heading("Summary"));
+                    lines.push(section_heading(localized_label("summary", locale)));
                     lines.push(DocumentLine {
                         kind: LineKind::Body,
                         text: summary.clone(),
@@ -1359,7 +1360,7 @@ fn render_lines(resume: &Resume, theme: &Theme) -> Vec<DocumentLine> {
             }
             SectionId::Work => {
                 if !resume.work.is_empty() {
-                    lines.push(section_heading("Work Experience"));
+                    lines.push(section_heading(localized_label("work", locale)));
                     for entry in &resume.work {
                         lines.push(DocumentLine {
                             kind: LineKind::Body,
@@ -1396,7 +1397,7 @@ fn render_lines(resume: &Resume, theme: &Theme) -> Vec<DocumentLine> {
             }
             SectionId::Education => {
                 if !resume.education.is_empty() {
-                    lines.push(section_heading("Education"));
+                    lines.push(section_heading(localized_label("education", locale)));
                     for entry in &resume.education {
                         lines.push(DocumentLine {
                             kind: LineKind::Body,
@@ -1433,7 +1434,7 @@ fn render_lines(resume: &Resume, theme: &Theme) -> Vec<DocumentLine> {
             }
             SectionId::Skills => {
                 if !resume.skills.is_empty() {
-                    lines.push(section_heading("Skills"));
+                    lines.push(section_heading(localized_label("skills", locale)));
                     for entry in &resume.skills {
                         lines.push(DocumentLine {
                             kind: LineKind::Body,
@@ -1445,7 +1446,7 @@ fn render_lines(resume: &Resume, theme: &Theme) -> Vec<DocumentLine> {
             }
             SectionId::Certifications => {
                 if !resume.certifications.is_empty() {
-                    lines.push(section_heading("Certifications"));
+                    lines.push(section_heading(localized_label("certifications", locale)));
                     for entry in &resume.certifications {
                         lines.push(DocumentLine {
                             kind: LineKind::Body,
@@ -1467,7 +1468,7 @@ fn render_lines(resume: &Resume, theme: &Theme) -> Vec<DocumentLine> {
             }
             SectionId::Projects => {
                 if !resume.projects.is_empty() {
-                    lines.push(section_heading("Projects"));
+                    lines.push(section_heading(localized_label("projects", locale)));
                     for entry in &resume.projects {
                         lines.push(DocumentLine {
                             kind: LineKind::Body,
@@ -1495,7 +1496,7 @@ fn render_lines(resume: &Resume, theme: &Theme) -> Vec<DocumentLine> {
             }
             SectionId::Languages => {
                 if !resume.languages.is_empty() {
-                    lines.push(section_heading("Languages"));
+                    lines.push(section_heading(localized_label("languages", locale)));
                     for entry in &resume.languages {
                         lines.push(DocumentLine {
                             kind: LineKind::Body,
@@ -1511,7 +1512,7 @@ fn render_lines(resume: &Resume, theme: &Theme) -> Vec<DocumentLine> {
             }
             SectionId::Awards => {
                 if !resume.awards.is_empty() {
-                    lines.push(section_heading("Awards"));
+                    lines.push(section_heading(localized_label("awards", locale)));
                     for entry in &resume.awards {
                         lines.push(DocumentLine {
                             kind: LineKind::Body,
@@ -1556,10 +1557,12 @@ fn write_pdf(
     let margin_mm = pt_to_mm(theme.spacing.page_margin_pt.max(DEFAULT_PAGE_MARGIN_PT));
     let width_mm = 210.0f32;
     let height_mm = 297.0f32;
+    let max_width_pt = Mm(width_mm - (margin_mm * 2.0)).into_pt().0;
+    let layout_lines = layout_wrapped_lines(lines, heading_size, body_size, max_width_pt);
     let mut y = height_mm - margin_mm;
     let mut ops = start_text_ops();
 
-    for line in lines {
+    for line in &layout_lines {
         let size = match line.kind {
             LineKind::Heading => heading_size,
             LineKind::Body => body_size,
@@ -1572,6 +1575,7 @@ fn write_pdf(
         let consumed = pt_to_mm(line_height_pt);
         if y - consumed < margin_mm {
             ops.push(Op::EndTextSection);
+            ops.push(Op::RestoreGraphicsState);
             pages.push(PdfPage::new(Mm(width_mm), Mm(height_mm), ops));
             ops = start_text_ops();
             y = height_mm - margin_mm;
@@ -1584,8 +1588,9 @@ fn write_pdf(
                 font: font_for_line(&line.kind),
                 size: Pt(size),
             });
-            ops.push(Op::SetTextCursor {
-                pos: Point::new(Mm(margin_mm), Mm(y)),
+            // printpdf serializes SetTextCursor as relative Td; use Tm for absolute page coords.
+            ops.push(Op::SetTextMatrix {
+                matrix: TextMatrix::Translate(Mm(margin_mm).into(), Mm(y).into()),
             });
             ops.push(Op::ShowText {
                 items: vec![TextItem::Text(line.text.clone())],
@@ -1595,6 +1600,7 @@ fn write_pdf(
     }
 
     ops.push(Op::EndTextSection);
+    ops.push(Op::RestoreGraphicsState);
     pages.push(PdfPage::new(Mm(width_mm), Mm(height_mm), ops));
 
     let document = doc.with_pages(pages);
@@ -1834,6 +1840,157 @@ fn section_heading(title: &str) -> DocumentLine {
     }
 }
 
+fn is_portuguese_locale(locale: Option<&str>) -> bool {
+    locale
+        .map(|value| {
+            let normalized = value.to_ascii_lowercase();
+            normalized == "pt" || normalized.starts_with("pt-") || normalized.starts_with("pt_")
+        })
+        .unwrap_or(false)
+}
+
+fn localized_label(key: &str, locale: Option<&str>) -> &'static str {
+    let portuguese = is_portuguese_locale(locale);
+    match (key, portuguese) {
+        ("summary", true) => "Resumo",
+        ("summary", false) => "Summary",
+        ("work", true) => "Experiência Profissional",
+        ("work", false) => "Work Experience",
+        ("education", true) => "Educação",
+        ("education", false) => "Education",
+        ("skills", true) => "Habilidades",
+        ("skills", false) => "Skills",
+        ("certifications", true) => "Certificações",
+        ("certifications", false) => "Certifications",
+        ("projects", true) => "Projetos",
+        ("projects", false) => "Projects",
+        ("languages", true) => "Idiomas",
+        ("languages", false) => "Languages",
+        ("awards", true) => "Realizações",
+        ("awards", false) => "Awards",
+        _ => "Section",
+    }
+}
+
+fn layout_wrapped_lines(
+    lines: &[DocumentLine],
+    heading_size: f32,
+    body_size: f32,
+    max_width_pt: f32,
+) -> Vec<DocumentLine> {
+    let mut wrapped = Vec::new();
+    for line in lines {
+        if line.text.is_empty() {
+            wrapped.push(line.clone());
+            continue;
+        }
+        let size = match line.kind {
+            LineKind::Heading => heading_size,
+            LineKind::Body => body_size,
+        };
+        let bold = matches!(line.kind, LineKind::Heading);
+        for segment in wrap_text(&line.text, max_width_pt, size, bold) {
+            wrapped.push(DocumentLine {
+                kind: line.kind.clone(),
+                text: segment,
+            });
+        }
+    }
+    wrapped
+}
+
+fn wrap_text(text: &str, max_width_pt: f32, font_size: f32, bold: bool) -> Vec<String> {
+    if text.is_empty() {
+        return vec![String::new()];
+    }
+    if estimate_text_width_pt(text, font_size, bold) <= max_width_pt {
+        return vec![text.to_string()];
+    }
+
+    let indent = if text.starts_with('•') {
+        "  "
+    } else {
+        ""
+    };
+    let mut lines = Vec::new();
+    let mut current = String::new();
+    for word in text.split_whitespace() {
+        let candidate = if current.is_empty() {
+            word.to_string()
+        } else {
+            format!("{current} {word}")
+        };
+        if estimate_text_width_pt(&candidate, font_size, bold) <= max_width_pt {
+            current = candidate;
+            continue;
+        }
+        if !current.is_empty() {
+            lines.push(current);
+        }
+        let continuation = if lines.is_empty() {
+            word.to_string()
+        } else {
+            format!("{indent}{word}")
+        };
+        if estimate_text_width_pt(&continuation, font_size, bold) <= max_width_pt {
+            current = continuation;
+        } else {
+            // Hard-split oversized tokens so layout never overflows the page width.
+            let chunks = split_oversized_token(&continuation, max_width_pt, font_size, bold);
+            if let Some((last, rest)) = chunks.split_last() {
+                lines.extend(rest.iter().cloned());
+                current = last.clone();
+            } else {
+                current = continuation;
+            }
+        }
+    }
+    if !current.is_empty() {
+        lines.push(current);
+    }
+    if lines.is_empty() {
+        vec![text.to_string()]
+    } else {
+        lines
+    }
+}
+
+fn split_oversized_token(token: &str, max_width_pt: f32, font_size: f32, bold: bool) -> Vec<String> {
+    let mut chunks = Vec::new();
+    let mut current = String::new();
+    for character in token.chars() {
+        let candidate = format!("{current}{character}");
+        if !current.is_empty()
+            && estimate_text_width_pt(&candidate, font_size, bold) > max_width_pt
+        {
+            chunks.push(current);
+            current = character.to_string();
+        } else {
+            current = candidate;
+        }
+    }
+    if !current.is_empty() {
+        chunks.push(current);
+    }
+    chunks
+}
+
+fn estimate_text_width_pt(text: &str, font_size: f32, bold: bool) -> f32 {
+    let average = if bold { 0.55 } else { 0.50 };
+    text.chars()
+        .map(|character| {
+            let factor = match character {
+                'i' | 'l' | 'I' | 'j' | 't' | 'f' | 'r' | '.' | ',' | ':' | ';' | '!' | '|'
+                | '\'' | '•' => 0.28,
+                'm' | 'w' | 'M' | 'W' => 0.85,
+                ' ' => 0.28,
+                _ => average,
+            };
+            factor * font_size
+        })
+        .sum()
+}
+
 fn default_true() -> bool {
     true
 }
@@ -1913,5 +2070,43 @@ mod tests {
                 );
             }
         }
+    }
+
+    #[test]
+    fn pdf_keeps_multiline_resume_content() {
+        let input = repo_root().join("examples/resume.yaml");
+        let temp = tempdir().expect("temp dir");
+        let result = build_resume(
+            &input,
+            BuildOptions {
+                format: OutputFormat::Pdf,
+                theme_name: "modern".to_string(),
+                output_dir: temp.path().to_path_buf(),
+                output_name: "matrix-check".to_string(),
+                overwrite: true,
+                non_interactive: true,
+                json_output: true,
+            },
+        )
+        .expect("build should succeed");
+        let bytes = fs::read(&result.outputs[0].path).expect("pdf should be readable");
+        assert!(bytes.starts_with(b"%PDF"));
+        assert!(bytes.len() > 1_000);
+        assert_eq!(result.outputs[0].bytes, bytes.len() as u64);
+    }
+
+    #[test]
+    fn wraps_long_lines_and_localizes_portuguese_labels() {
+        assert_eq!(localized_label("work", Some("pt-BR")), "Experiência Profissional");
+        assert_eq!(localized_label("work", Some("en-US")), "Work Experience");
+        let wrapped = wrap_text(
+            "• Desenvolvimento full stack end-to-end com React Native, Laravel e Node.js para produtos white-label em produção.",
+            220.0,
+            10.5,
+            false,
+        );
+        assert!(wrapped.len() > 1);
+        assert!(wrapped[0].starts_with('•'));
+        assert!(wrapped[1].starts_with("  "));
     }
 }
