@@ -1,5 +1,8 @@
 # resumec
 
+[![CI](https://github.com/hebertcisco/resumec/actions/workflows/ci.yml/badge.svg)](https://github.com/hebertcisco/resumec/actions/workflows/ci.yml)
+[![License: MIT OR Apache-2.0](https://img.shields.io/badge/license-MIT%20OR%20Apache--2.0-blue.svg)](#license)
+
 `resumec` is a cross-platform Rust CLI that compiles ATS-friendly resume data from JSON, TOML, or YAML into final PDF and editable DOCX outputs.
 
 ## Highlights
@@ -12,6 +15,8 @@
 - User config and theme storage under the platform-standard config directory
 
 ## Installation
+
+Install with Rust 1.85 or newer:
 
 ```bash
 cargo install --path .
@@ -169,6 +174,15 @@ Behavior:
 - Pull requests run `resumec validate`
 - Pushes to `main` run `resumec build --format both --json-output`
 - Generated files are uploaded as artifacts
+
+Project automation is split by responsibility:
+
+- `.github/workflows/ci.yml` checks formatting, Clippy, documentation, and tests
+  on Linux, macOS, and Windows.
+- `.github/workflows/resume.yml` validates the example and uploads generated
+  resume files from `main`.
+- `.github/workflows/release.yml` builds platform binaries and publishes a
+  GitHub release for semantic-version tags such as `v0.2.0`.
 
 ## n8n example
 
