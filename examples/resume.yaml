@@ -1,64 +1,23 @@
 schema_version: 1
-theme: classic
-locale: pt-BR
-target_role: Senior Rust Engineer
 basics:
-  name: Ana Souza
-  headline: Senior Rust Engineer
-  email: ana.souza@example.com
-  phone: "+55 11 99999-9999"
-  location: São Paulo, BR
-  summary: Engenheira de software com foco em Rust, automação e ferramentas para desenvolvedores.
-  links:
-    - label: LinkedIn
-      url: https://www.linkedin.com/in/anasouza
-    - label: GitHub
-      url: https://github.com/anasouza
+  name: Ada Lovelace
+  headline: Software Engineer
+  email: ada@example.com
+  location: London, UK
+  summary: Engineer focused on reliable analytical systems.
 work:
-  - company: Acme Tech
-    position: Staff Software Engineer
-    start_date: 2022-01
-    end_date: Present
-    location: Remote
+  - company: Analytical Engines Ltd.
+    position: Software Engineer
+    start_date: 1842-01
+    end_date: 1843-12
     highlights:
-      - Liderou a migração de serviços internos críticos para Rust, reduzindo latência em 37%.
-      - Automatizou pipelines de entrega e validou currículos com foco em ATS para times de recrutamento.
-  - company: Data Systems
-    position: Senior Backend Engineer
-    start_date: 2018-03
-    end_date: 2021-12
-    location: São Paulo, BR
-    highlights:
-      - Criou APIs e integrações para processamento de documentos em larga escala.
+      - Designed an algorithm for the Analytical Engine.
 education:
-  - institution: Universidade Federal de Minas Gerais
-    area: Ciência da Computação
-    study_type: Bacharelado
-    start_date: 2012
-    end_date: 2016
+  - institution: University of London
+    area: Mathematics
+    study_type: Independent studies
 skills:
-  - category: Linguagens
-    items: [Rust, Python, TypeScript]
-  - category: Plataformas
-    items: [GitHub Actions, Docker, AWS]
-certifications:
-  - name: AWS Certified Developer – Associate
-    issuer: Amazon Web Services
-    date: 2023
-projects:
-  - name: resumec
-    summary: CLI para compilar currículos ATS-friendly em PDF e DOCX.
-    url: https://github.com/hebertcisco/resumec
-    highlights:
-      - Geração nativa de PDF e DOCX.
-      - Integração com GitHub Actions e MCP.
-languages:
-  - name: Português
-    fluency: Nativo
-  - name: English
-    fluency: Professional working proficiency
-awards:
-  - title: Prêmio Inovação Interna
-    issuer: Acme Tech
-    date: 2024
-    summary: Reconhecimento por plataforma interna de automação para engenharia.
+  - category: Programming
+    items:
+      - Algorithms
+      - Mathematics
